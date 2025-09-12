@@ -363,7 +363,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
 
     try:
         root_temp_dir = os.getenv('TEMP_DIR', '/tmp')
-        os.makedirs(root_temp_dir, exist_ok=True)
+        os.makedirs(root_temp_dir, exist_ok=True, mode=0o777)
 
         # get ecmwf client
         client = get_ecmwf_client()
@@ -410,12 +410,14 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # loop through for each day
             step = f" download {cnt+1} "
             print(f"\nDownload process for Day {cnt+1}...")
+            download_dir = f"{root_temp_dir}/{download_path}"
+            os.makedirs(download_dir, exist_ok=True, mode=0o777)
             for i in range(len(chunk)):
                 step_hour = chunk[i]
                 print(f"step_hour: {step_hour}")
                 # set target filename 
-                # NOTE: FYI, here we are closely mimicking to the server filename
-                target_filename = f"{root_temp_dir}/{download_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_oper_fc.grib2"
+                # NOTE: FYI, here we are closely mimicking to the server filename              
+                target_filename = f"{download_dir}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_oper_fc.grib2"
                 if not os.path.exists(target_filename):
                     client.download(
                         date=current_date.strftime("%Y%m%d"), # Specify the date
@@ -434,7 +436,8 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             step = f" loadgribtocsv cnt {cnt+1} "
             # print(f"filter_levels: {filter_levels}")
             prepped_dir = f"{root_temp_dir}/{prepped_path}"
-            load_grib2_to_csv(filter_levels=filter_levels, input_dir=download_path,
+            os.makedirs(prepped_dir, exist_ok=True, mode=0o777)
+            load_grib2_to_csv(filter_levels=filter_levels, input_dir=download_dir,
                               prepped_dir=prepped_dir, level=level, yaml_file=yaml_file)
             
             # combine period csv s for one day to one common csv
@@ -446,14 +449,14 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # NOTE: each time a grib2 file is opened, an index file i.e. idx file gets created,
             #       so *.grib2.* pattern is needed, as it will delete all grib2 related files.
             step = f" del gribdate {cnt+1} "
-            del_path = f"{root_temp_dir}/{download_path}/*.grib2*"
+            del_path = f"{download_dir}/*.grib2*"
             files_to_del = glob(del_path)
             for f_del in files_to_del:
                 os.remove(f_del)
 
             # delete the grib files
             step = f" del prepdate {cnt+1} "
-            p_del_path = f"{root_temp_dir}/{prepped_path}/{prepped_suffix}/*.csv"
+            p_del_path = f"{prepped_dir}/{prepped_suffix}/*.csv"
             p_files_to_del = glob(p_del_path)
             for f_del in p_files_to_del:
                 os.remove(f_del)
@@ -504,7 +507,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             cnt += 1
         
         if push_destination == "s3":
-            print(f"\nSaved csv file on s3 are: {", ".join(uploaded_file_list)}")
+            print(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
     except Exception as ex:
         print(f"Error with exception: {ex} at step: {step}")
     return dp_status
