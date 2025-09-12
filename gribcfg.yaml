@@ -1,0 +1,21 @@
+coords:
+ north: "28°15'"
+ west: "88°45'"
+ south: "26°40'"
+ east: "92°10'"
+
+coords_map:
+ north: "max_lat_bhutan"
+ south: "min_lat_bhutan"
+ west: "min_lon_bhutan"
+ east: "max_lon_bhutan"
+
+pre_combine_cols:
+ surface: ["longitude", "latitude", "surface", "tp", "tprate"]
+ heightAboveGround: ["longitude", "latitude", "t2m", "time"]
+
+s3:
+ bucket_name: "bhutan-climatesense"
+ s3_region: "us-east-2"
+ AWS_ACCESS_KEY_ID: "AKIA4UP332ZXULK2EJTK"
+ AWS_SECRET_ACCESS_KEY: "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"
