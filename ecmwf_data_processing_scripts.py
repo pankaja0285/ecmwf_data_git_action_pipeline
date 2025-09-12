@@ -59,7 +59,7 @@ def convert_degrees_to_decimal(degrees, minutes=None, seconds=None, direction=No
 
     return deg_decimal
 
-def set_coords_as_decimal(yaml_file="gribcfg.yaml"):
+def set_coords_as_decimal(yaml_file=""):
     result = {}
     data = None
     vals = None
@@ -171,7 +171,8 @@ def load_grib2_to_dataframe(file_path, filter_level="", level=0):
         # Handle the error, e.g., exit or try another engine
     return df
 
-def load_combine_filter_ecmwf_grib_data(file_path="", filter_levels=[], level=2, k2cvalue=273.15):
+def load_combine_filter_ecmwf_grib_data(file_path="", filter_levels=[], level=2, k2cvalue=273.15,
+                                        yaml_file=""):
     status = False
     step = ""
     df_flevel = None
@@ -204,7 +205,7 @@ def load_combine_filter_ecmwf_grib_data(file_path="", filter_levels=[], level=2,
         df_cmb_k2c['t2m_cel'] = df_cmb_k2c['t2m'].apply(lambda x: x - k2cvalue) # 273.15)
 
         step = " filter for lats "
-        min_max_coords = set_coords_as_decimal(yaml_file="gribcfg.yaml")
+        min_max_coords = set_coords_as_decimal(yaml_file=yaml_file)   
         filtered_df = (df_cmb_k2c[
             (df_cmb_k2c['latitude'] >= min_max_coords["min_lat_bhutan"]) 
             & (df_cmb_k2c['latitude'] <= min_max_coords["max_lat_bhutan"]) &
@@ -219,8 +220,8 @@ def load_combine_filter_ecmwf_grib_data(file_path="", filter_levels=[], level=2,
     return status, filtered_df
 
 
-def load_grib2_to_csv(filter_levels=[], input_dir="./download", prepped_dir="./prepped",
-                      prepped_suffix="temp", level=2):  
+def load_grib2_to_csv(filter_levels=[], input_dir="", prepped_dir="",
+                      prepped_suffix="temp", level=2, yaml_file=""):  
     # input_dir = "./download"
     prepped_suffix_dir = f"{prepped_dir}/{prepped_suffix}"
 
@@ -238,7 +239,7 @@ def load_grib2_to_csv(filter_levels=[], input_dir="./download", prepped_dir="./p
         inpath_filename = f"{input_dir}/{filename}"
         load_status, comb_df = load_combine_filter_ecmwf_grib_data(file_path=inpath_filename,
                                                                 filter_levels=filter_levels,
-                                                                level=level)
+                                                                level=level, yaml_file=yaml_file)
         
         if load_status:
             # save file
@@ -262,7 +263,7 @@ def format_date_final(row, date_format="%Y-%m-%d"):
 
     return date_value
 
-def combine_csvs_for_one_day(prepped_path="./prepped", prepped_suffix="temp", hour_array=[]):
+def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=[]):
     combined_1day_df = None
      
     step = ""
@@ -354,13 +355,16 @@ def get_forecast_hours_for_total_days(num_days=0, step_size=6, start=6):
 def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix="",
                                     filter_levels=[], level=2,                                    
                                     number_of_days=5, step_size=6,
-                                    push_destination="local", push_data_path="data",
-                                    yaml_file=""):
+                                    push_destination="", push_data_path="",
+                                    yaml_file="", env=""):
     step = ""
     dp_status = False
     bucket_name = ""
 
     try:
+        root_temp_dir = os.getenv('TEMP_DIR', '/tmp')
+        os.makedirs(root_temp_dir, exist_ok=True)
+
         # get ecmwf client
         client = get_ecmwf_client()
 
@@ -411,7 +415,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 print(f"step_hour: {step_hour}")
                 # set target filename 
                 # NOTE: FYI, here we are closely mimicking to the server filename
-                target_filename = f"{download_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_oper_fc.grib2"
+                target_filename = f"{root_temp_dir}/{download_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_oper_fc.grib2"
                 if not os.path.exists(target_filename):
                     client.download(
                         date=current_date.strftime("%Y%m%d"), # Specify the date
@@ -429,26 +433,27 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # load
             step = f" loadgribtocsv cnt {cnt+1} "
             # print(f"filter_levels: {filter_levels}")
+            prepped_dir = f"{root_temp_dir}/{prepped_path}"
             load_grib2_to_csv(filter_levels=filter_levels, input_dir=download_path,
-                              prepped_dir=prepped_path, level=level)
+                              prepped_dir=prepped_dir, level=level, yaml_file=yaml_file)
             
             # combine period csv s for one day to one common csv
             step = f" cmbcsv cnt {cnt+1} "
-            df_comb_csv = combine_csvs_for_one_day(prepped_path=prepped_path, hour_array=chunk)
+            df_comb_csv = combine_csvs_for_one_day(prepped_path=prepped_dir, hour_array=chunk)
             print(df_comb_csv.head(2))
 
             # delete the grib2 and grib2.idx files
             # NOTE: each time a grib2 file is opened, an index file i.e. idx file gets created,
             #       so *.grib2.* pattern is needed, as it will delete all grib2 related files.
             step = f" del gribdate {cnt+1} "
-            del_path = f"{download_path}/*.grib2*"
+            del_path = f"{root_temp_dir}/{download_path}/*.grib2*"
             files_to_del = glob(del_path)
             for f_del in files_to_del:
                 os.remove(f_del)
 
             # delete the grib files
             step = f" del prepdate {cnt+1} "
-            p_del_path = f"{prepped_path}/{prepped_suffix}/*.csv"
+            p_del_path = f"{root_temp_dir}/{prepped_path}/{prepped_suffix}/*.csv"
             p_files_to_del = glob(p_del_path)
             for f_del in p_files_to_del:
                 os.remove(f_del)
@@ -469,7 +474,11 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 case "s3":
                     # save dataframe as a csv file on AWS s3
                     print(f"Saving data on s3 as file: {save_file}")
-                    s3c, _, s3s = connect_to_s3_resource(yaml_file=yaml_file)  # "gribcfg.yaml")
+                    if env.strip() != "":
+                        s3c, _, s3s = connect_to_s3_resource(env=env)  
+                    else: 
+                        print("❌For git action pipeline we aren't using credentials stored yaml file, please choose 'env' option and rerun.")  
+                        # s3c, _, s3s = connect_to_s3_resource(yaml_file=yaml_file)  
                     key = f"{push_data_path}/{save_file}"
                     bucket_name = s3s['bucket_name']
                     save_status = upload_dataframe_as_csv(df_comb_csv, 

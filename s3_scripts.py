@@ -16,9 +16,11 @@ def get_s3_settings(src="yaml", yaml_file="gribcfg.yaml"):
 
     print(f"Source of access data: {src}")
     if src=="env":
-        s3_region = "us-east-2"
+        # s3_region = "us-east-2"
+        s3_region = os.getenv("S3_REGION")
         # bucket_name --> this would also be set in env, especially we have access to only one bucket
-        bucket_name = "bhutan-climatesense" 
+        # bucket_name = "bhutan-climatesense" 
+        bucket_name = os.getenv('S3_BUCKET_NAME')
         aws_key = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
         s3_settings = {
@@ -37,20 +39,20 @@ def get_s3_settings(src="yaml", yaml_file="gribcfg.yaml"):
     
     return s3_settings
 
-def connect_to_s3_resource(s3_settings=None, yaml_file=""):
+def connect_to_s3_resource(s3_settings=None, yaml_file="", src="env"):
     if s3_settings is None:
         s3_settings = get_s3_settings(yaml_file=yaml_file)
     s3_client = boto3.client(
         's3',
         aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],
         aws_secret_access_key=s3_settings['AWS_SECRET_ACCESS_KEY'],
-        region_name=s3_settings['s3_region']  # e.g., 'us-east-1'
+        region_name=s3_settings['S3_REGION']  # e.g., 'us-east-2'
     )
     s3_resource = boto3.resource(
         's3',
         aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],
         aws_secret_access_key=s3_settings['AWS_SECRET_ACCESS_KEY'],
-        region_name=s3_settings['s3_region']  # e.g., 'us-east-1'
+        region_name=s3_settings['S3_REGION']  # e.g., 'us-east-2'
     )
     return s3_client, s3_resource, s3_settings
 

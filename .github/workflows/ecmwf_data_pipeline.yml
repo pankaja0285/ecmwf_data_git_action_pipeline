@@ -30,12 +30,17 @@ jobs:
         # The recommended way to install cfgrib and dependencies is via conda
         # but for a simple case, pip can work if system eccodes is present
         python -m pip install --upgrade pip
-        pip install ecmwf-opendata cfgrib xarray boto3
+        # pip install ecmwf-opendata cfgrib xarray boto3
+        pip install -r requirements.txt
 
     - name: Run Python script
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        S3_REGION: ${{ secrets.S3_REGION }}
         TEMP_DIR: '/tmp'  # Explicitly setting TEMP_DIR
-      run: python main_ecmwf_data_pipeline.py
+      # run: python main_ecmwf_data_pipeline.py
+      run: |
+          chmod +x ./ecmwf_data_refresh_on_s3.sh
+          ./ecmwf_data_refresh_on_s3.sh

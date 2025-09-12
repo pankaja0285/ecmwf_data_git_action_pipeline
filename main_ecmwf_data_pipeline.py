@@ -13,7 +13,8 @@ from s3_scripts import *
 def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix="",
                             filter_levels=[], level=2,
                             number_of_days=0, step_counter=6,
-                            push_destination="", yaml_file="",
+                            push_destination="", push_data_path="",
+                            yaml_file="", env="",
                             delete_s3_files=False
                             ):
     # number_of_days = 5   # 10
@@ -45,7 +46,8 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
                                                      filter_levels=filter_levels, level=level,
                                                      number_of_days=number_of_days, step_size=step_counter,
                                                      push_destination=push_destination, 
-                                                     yaml_file=yaml_file
+                                                     push_data_path=push_data_path,
+                                                     yaml_file=yaml_file, env=env
                                                     )
     end_t = time.time()
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -62,9 +64,9 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Downloading ECMWF data and processing to convert to .CSV...')
-    parser.add_argument('--download_path', type=str, default='./download',
+    parser.add_argument('--download_path', type=str, default='download',
                         help='main download path for Grib2 files')
-    parser.add_argument('--prepped_path', type=str, default='./prepped',
+    parser.add_argument('--prepped_path', type=str, default='prepped',
                         help='prepped data main path')
     parser.add_argument('--prepped_suffix', type=str, default='temp',
                         help='temp folder for individually converted (by step hour)grib2 to csv file')
@@ -78,8 +80,10 @@ if __name__ == "__main__":
                         help='step size')
     parser.add_argument('--push_destination', type=str, default='local',
                         help='push destination where the final prepped ECMWF data csv file will be stored')
-    # parser.add_argument('--bucket_name', type=str, default='',
-    #                     help='bucket name has to be present if push_destination="s3"')
+    parser.add_argument('--push_data_path', type=str, default='data',
+                        help='push destination data path prefix where the final prepped ECMWF data csv file will be stored')
+    parser.add_argument('--env', type=str, default='env',
+                        help='get push destination "s3" auth details from env')
     parser.add_argument('--yaml_file', type=str, default='gribcfg.yaml',
                         help='settings required for download')
     parser.add_argument('--delete_s3_files_flag', type=str, default='Y',
@@ -99,8 +103,9 @@ if __name__ == "__main__":
 
     # push destination related
     push_destination = ""
-    # bucket_name = ""
+    push_data_path = ""
     yaml_file = ""
+    env = ""
     delete_s3_files = False
 
     if parse_args.download_path:
@@ -124,8 +129,10 @@ if __name__ == "__main__":
     # push destination related
     if parse_args.push_destination is not None:
         push_destination = parse_args.push_destination
-    # if parse_args.bucket_name is not None:
-    #     bucket_name = parse_args.bucket_name
+    if parse_args.push_data_path is not None:
+        push_data_path = parse_args.push_data_path
+    if parse_args.env is not None:
+        env = parse_args.env
     if parse_args.yaml_file is not None:
         yaml_file = parse_args.yaml_file
     if parse_args.delete_s3_files_flag is not None:
@@ -139,7 +146,8 @@ if __name__ == "__main__":
     main_process_ecmwf_data(download_path=download_path, prepped_path=prepped_path, 
                             prepped_suffix=prepped_suffix, filter_levels=filter_levels, level=level,
                             number_of_days=number_of_days, step_counter=step_counter,
-                            push_destination=push_destination, 
-                            yaml_file=yaml_file, delete_s3_files=delete_s3_files
+                            push_destination=push_destination, push_data_path=push_data_path,
+                            yaml_file=yaml_file, env=env,
+                            delete_s3_files=delete_s3_files
                             )
     
