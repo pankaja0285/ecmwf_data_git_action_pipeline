@@ -10,38 +10,27 @@ from io import StringIO, BytesIO
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 # ******************************************************************************************
 
-def get_s3_settings(src="yaml", yaml_file="gribcfg.yaml"):
+def get_s3_settings():
     s3_settings = {}
-    data = None
 
-    print(f"Source of access data: {src}")
-    if src=="env":
-        # s3_region = "us-east-2"
-        s3_region = os.getenv("S3_REGION")
-        # bucket_name --> this would also be set in env, especially we have access to only one bucket
-        # bucket_name = "bhutan-climatesense" 
-        bucket_name = os.getenv('S3_BUCKET_NAME')
-        aws_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-        s3_settings = {
-            "bucket_name": bucket_name,
-            "s3_region": s3_region,
-            "AWS_ACCESS_KEY_ID": aws_key,
-            "AWS_SECRET_ACCESS_KEY": aws_secret        
-        }
-    else:
-        # load config for coords
-        with open(yaml_file, 'r') as f:
-            data = yaml.load(f, Loader=yaml.SafeLoader)
+    print(f"Source of access data: env")
+    s3_region = os.getenv("S3_REGION")
+    # bucket_name --> this would also be set in env, especially we have access to only one bucket
+    # bucket_name = "bhutan-climatesense" 
+    bucket_name = os.getenv('S3_BUCKET_NAME')
+    aws_key = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+    s3_settings = {
+        "bucket_name": bucket_name,
+        "s3_region": s3_region,
+        "AWS_ACCESS_KEY_ID": aws_key,
+        "AWS_SECRET_ACCESS_KEY": aws_secret        
+    }
         
-        if data:
-            s3_settings = data["s3"]
-    
     return s3_settings
 
-def connect_to_s3_resource(s3_settings=None, yaml_file="", src="env"):
-    if s3_settings is None:
-        s3_settings = get_s3_settings(yaml_file=yaml_file)
+def connect_to_s3_resource(s3_settings=None):
+    s3_settings = get_s3_settings()
     s3_client = boto3.client(
         's3',
         aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],

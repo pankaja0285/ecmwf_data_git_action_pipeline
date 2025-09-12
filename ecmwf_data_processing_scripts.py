@@ -356,7 +356,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                                     filter_levels=[], level=2,                                    
                                     number_of_days=5, step_size=6,
                                     push_destination="", push_data_path="",
-                                    yaml_file="", env=""):
+                                    yaml_file=""):
     step = ""
     dp_status = False
     bucket_name = ""
@@ -477,11 +477,9 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 case "s3":
                     # save dataframe as a csv file on AWS s3
                     print(f"Saving data on s3 as file: {save_file}")
-                    if env.strip() != "":
-                        s3c, _, s3s = connect_to_s3_resource(env=env)  
-                    else: 
-                        print("❌For git action pipeline we aren't using credentials stored yaml file, please choose 'env' option and rerun.")  
-                        # s3c, _, s3s = connect_to_s3_resource(yaml_file=yaml_file)  
+                    # get s3 connect details
+                    s3c, _, s3s = connect_to_s3_resource()
+                    
                     key = f"{push_data_path}/{save_file}"
                     bucket_name = s3s['bucket_name']
                     save_status = upload_dataframe_as_csv(df_comb_csv, 

@@ -14,7 +14,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
                             filter_levels=[], level=2,
                             number_of_days=0, step_counter=6,
                             push_destination="", push_data_path="",
-                            yaml_file="", env="",
+                            yaml_file="", 
                             delete_s3_files=False
                             ):
     # number_of_days = 5   # 10
@@ -32,7 +32,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
 
     # clean data on s3 first
     if delete_s3_files:
-        s3c, _, s3s = connect_to_s3_resource(yaml_file=yaml_file)  # "gribcfg.yaml")
+        s3c, _, s3s = connect_to_s3_resource()  
         bucket_name = s3s['bucket_name']
         print(f"bucket_name: {bucket_name}")
         flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c)
@@ -47,7 +47,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
                                                      number_of_days=number_of_days, step_size=step_counter,
                                                      push_destination=push_destination, 
                                                      push_data_path=push_data_path,
-                                                     yaml_file=yaml_file, env=env
+                                                     yaml_file=yaml_file
                                                     )
     end_t = time.time()
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -82,8 +82,8 @@ if __name__ == "__main__":
                         help='push destination where the final prepped ECMWF data csv file will be stored')
     parser.add_argument('--push_data_path', type=str, default='data',
                         help='push destination data path prefix where the final prepped ECMWF data csv file will be stored')
-    parser.add_argument('--env', type=str, default='env',
-                        help='get push destination "s3" auth details from env')
+    # parser.add_argument('--env', type=str, default='env',
+    #                     help='get push destination "s3" auth details from env')
     parser.add_argument('--yaml_file', type=str, default='gribcfg.yaml',
                         help='settings required for download')
     parser.add_argument('--delete_s3_files_flag', type=str, default='Y',
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     push_destination = ""
     push_data_path = ""
     yaml_file = ""
-    env = ""
+    # env = ""
     delete_s3_files = False
 
     if parse_args.download_path:
@@ -131,8 +131,8 @@ if __name__ == "__main__":
         push_destination = parse_args.push_destination
     if parse_args.push_data_path is not None:
         push_data_path = parse_args.push_data_path
-    if parse_args.env is not None:
-        env = parse_args.env
+    # if parse_args.env is not None:
+    #     env = parse_args.env
     if parse_args.yaml_file is not None:
         yaml_file = parse_args.yaml_file
     if parse_args.delete_s3_files_flag is not None:
@@ -147,7 +147,7 @@ if __name__ == "__main__":
                             prepped_suffix=prepped_suffix, filter_levels=filter_levels, level=level,
                             number_of_days=number_of_days, step_counter=step_counter,
                             push_destination=push_destination, push_data_path=push_data_path,
-                            yaml_file=yaml_file, env=env,
+                            yaml_file=yaml_file, 
                             delete_s3_files=delete_s3_files
                             )
     
