@@ -5,6 +5,8 @@ import yaml
 import json
 import pandas as pd 
 import logging
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 from io import StringIO, BytesIO
 
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
@@ -59,16 +61,24 @@ def verify_object_exists(bucket: str=None, key: str=None, s3_client=None) -> boo
         logging.error(f"head_object failed: {e}")
     return verify_status
 
-def list_bucket_objects(bucket:str="", s3_client=None) -> list:
+def list_bucket_objects(bucket:str="", s3_client=None, object_prefix="") -> list:
     lst_objects = []
+    
     try:
-        response = s3_client.list_objects_v2(Bucket=bucket)
+        # response = s3_client.list_objects_v2(Bucket=bucket)
+        if object_prefix != "":
+            response = s3_client.list_objects_v2(Bucket=bucket, Prefix=object_prefix)
+        else:
+            response = s3_client.list_objects_v2(Bucket=bucket)
 
         if 'Contents' in response:
             for obj in response['Contents']:
                 lst_objects.append(f"{obj['Key']}")
+        else:
+            raise Exception("Contents not found in the list_objects_v2")
     except Exception as ex:
         logging.error(f"Error with exception: {ex}")
+    
     return lst_objects
     
 def remove_files_on_s3(file_list=None, bucket:str="", s3_client=None):

@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, date
 import time
-
+import logging
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # import custom script
 from ecmwf_data_processing_scripts import *
 from s3_scripts import *
@@ -17,8 +19,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
                             yaml_file="", 
                             delete_s3_files=False
                             ):
-    # number_of_days = 5   # 10
-    # step_counter = 6
+    object_prefix = ""
 
     # ********** NOTE: Always assumed today's date, hence not passing to the function call below
     # start_date_obj = date.today()
@@ -28,6 +29,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"ECMNWF Data download and processing started at: {fmt_date}")
+    logging.info(f"ECMNWF Data download and processing started at: {fmt_date}")
     start_t = time.time()
 
     # clean data on s3 first
@@ -35,11 +37,13 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
         s3c, _, s3s = connect_to_s3_resource()  
         bucket_name = s3s['bucket_name']
         print(f"bucket_name: {bucket_name}")
-        flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c)
-        print(f"list of files in s3: {flist}")
+        object_prefix = f"{push_data_path}/"
+        flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
+        logging.info(f"list of files in s3 with object_prefix - {object_prefix}: {flist}")
         if len(flist) > 0:
             del_status = remove_files_on_s3(file_list=flist, bucket=bucket_name, s3_client=s3c)
-
+        s3c.close()
+        
     # download and process
     overall_status = download_and_process_ecmwf_data(download_path=download_path, prepped_path=prepped_path,
                                                      prepped_suffix=prepped_suffix,
@@ -49,17 +53,39 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
                                                      push_data_path=push_data_path,
                                                      yaml_file=yaml_file
                                                     )
+    
+    # list the files after push to s3 as well for audit purposes
+    s3c, _, s3s = connect_to_s3_resource()  
+    bucket_name = s3s['bucket_name']
+    print(f"bucket_name: {bucket_name}")
+    object_prefix = f"{push_data_path}/"
+    f_postlist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
+    # user friendly format the list and show in the log
+    logging.info(f"ECMWF data refresh on S3, for requested date of {fmt_date} for {number_of_days} days:")
+    if f_postlist:
+        fmt_flist = "\n".join(map(str, f_postlist))
+        logging.info(f"{fmt_flist}")
+    else:
+        logging.warn(" Unable to locate files after the ECMWF data push to S3")
+    s3c.close()
+
+    # record end of ECMWF data processing
     end_t = time.time()
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
     print(f"ECMNWF Data download and processing completed at: {fmt_date}")
+    logging.info(f"ECMNWF Data download and processing completed at: {fmt_date}")
 
     time_diff = round(end_t - start_t)
+    msg = ""
     # find the difference and print the total time taken
     if time_diff <= 60:
-        print(f"Total time taken for ECMWF Data download and process: {time_diff} seconds")
+        msg = f"Total time taken for ECMWF Data download and process: {time_diff} seconds"
     else:
         total_time = timedelta(seconds = time_diff)
-        print(f"Total time taken for ECMWF Data download and process: {total_time}")
+        msg = f"Total time taken for ECMWF Data download and process: {total_time}"
+    print(msg)
+    logging.info(msg)
 
 
 if __name__ == "__main__":
@@ -80,7 +106,7 @@ if __name__ == "__main__":
                         help='step size')
     parser.add_argument('--push_destination', type=str, default='local',
                         help='push destination where the final prepped ECMWF data csv file will be stored')
-    parser.add_argument('--push_data_path', type=str, default='data',
+    parser.add_argument('--push_data_path', type=str, default='ecmwfdata',
                         help='push destination data path prefix where the final prepped ECMWF data csv file will be stored')
     # parser.add_argument('--env', type=str, default='env',
     #                     help='get push destination "s3" auth details from env')

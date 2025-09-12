@@ -14,6 +14,10 @@ import yaml
 from geopy.geocoders import Nominatim
 import functools as ft
 
+import logging
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # ***************** DO NOT CHANGE THESE IMPORTS ************************
 from s3_scripts import *
 # **********************************************************************
@@ -89,7 +93,7 @@ def set_coords_as_decimal(yaml_file=""):
             
 
     except Exception as ex:
-        print(f"Error occurred as exception: {ex}")
+        logging.error(f"Error occurred as exception: {ex}")
     return result
 
 
@@ -167,7 +171,7 @@ def load_grib2_to_dataframe(file_path, filter_level="", level=0):
             df = ds.to_dataframe()
             df = df.reset_index()
     except Exception as e:
-        print(f"Error opening GRIB2 file: {e}")
+        logging.error(f"Error opening GRIB2 file: {e}")
         # Handle the error, e.g., exit or try another engine
     return df
 
@@ -215,7 +219,7 @@ def load_combine_filter_ecmwf_grib_data(file_path="", filter_levels=[], level=2,
         status = True
         
     except Exception as ex:
-        print(f"Error occurred as exception: {ex} at step: {step}")
+        logging.error(f"Error occurred as exception: {ex} at step: {step}")
     
     return status, filtered_df
 
@@ -236,6 +240,7 @@ def load_grib2_to_csv(filter_levels=[], input_dir="", prepped_dir="",
     os.makedirs(prepped_suffix_dir, exist_ok=True, mode=0o777)
     for filename in ecmwf_filenames:
         print(f"\nProcessing grib2 file: {filename}")
+        logging.info(f"\nProcessing grib2 file: {filename}")
         inpath_filename = f"{input_dir}/{filename}"
         load_status, comb_df = load_combine_filter_ecmwf_grib_data(file_path=inpath_filename,
                                                                 filter_levels=filter_levels,
@@ -269,6 +274,7 @@ def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=
     step = ""
 
     print(f"\nCombining csvs to one csv - for current range of forecast_hours...")
+    logging.info(f"\nCombining csvs to one csv - for current range of forecast_hours...")
     try:
         # set up file paths
         p_pattern = f"{prepped_path}/{prepped_suffix}/*.csv"
@@ -341,7 +347,7 @@ def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=
         combined_1day_df = re_arrange_df(final_df, cols=cols_order)
         # print(combined_1day_df.columns)
     except Exception as ex:
-        print(f"Error with exception: {ex} at step: {step}")
+        logging.error(f"Error with exception: {ex} at step: {step}")
     return combined_1day_df
 
 
@@ -388,6 +394,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         start_date = datetime.strptime(formatted_date_string, '%Y-%m-%d').date()
         # print(f"start_date type: {type(start_date)}")
         print(f"ECMWF Data Refresh -- Start date: {start_date}")
+        logging.info(f"ECMWF Data Refresh -- Start date: {start_date}")
 
         step = " fhours "
         start_hour = step_size
@@ -406,10 +413,10 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
 
         for chunk in chunks:
             print(f"Processing chunk: {chunk}")
-            
+            logging.info(f"Processing chunk: {chunk}")
             # loop through for each day
             step = f" download {cnt+1} "
-            print(f"\nDownload process for Day {cnt+1}...")
+            logging.info(f"\nDownload process for Day {cnt+1}...")
             download_dir = f"{root_temp_dir}/{download_path}"
             os.makedirs(download_dir, exist_ok=True, mode=0o777)
             for i in range(len(chunk)):
@@ -427,9 +434,9 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                         type="fc", # Forecast data
                         target=target_filename,
                     )
-                    print(f"Downloaded data for {current_date} to {target_filename}")
+                    logging.info(f"Downloaded data for {current_date} to {target_filename}")
                 else:
-                    print(f"⚠️ Already exists: {target_filename}")
+                    logging.info(f"⚠️ Already exists: {target_filename}")
                         
             # process (load, combine, save to prepped) before resuming the while loop
             # load
@@ -477,6 +484,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 case "s3":
                     # save dataframe as a csv file on AWS s3
                     print(f"Saving data on s3 as file: {save_file}")
+                    logging.info(f"Saving data on s3 as file: {save_file}")
                     # get s3 connect details
                     s3c, _, s3s = connect_to_s3_resource()
                     
@@ -487,15 +495,15 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                                                           key=key,
                                                           s3_client=s3c)
                     if save_status:
-                        print(f"✅Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} succeeded.")
+                        logging.info(f"✅Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} succeeded.")
                         uploaded_file_list.append(save_file)
                     else:
-                        print(f"❌Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} failed.")
+                        logging.warn(f"❌Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} failed.")
                 case _: # default
                     # save to local as default                    
                     cmb_file = f"{prepped_path}/{save_file}"
                     df_comb_csv.to_csv(cmb_file, index=False)
-                    print(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
+                    logging.info(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
             
             # status
             dp_status = True
@@ -506,6 +514,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         
         if push_destination == "s3":
             print(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
+            logging.info(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
     except Exception as ex:
-        print(f"Error with exception: {ex} at step: {step}")
+        logging.error(f"Error with exception: {ex} at step: {step}")
     return dp_status
