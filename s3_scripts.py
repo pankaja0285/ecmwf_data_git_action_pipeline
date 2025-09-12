@@ -22,7 +22,7 @@ def get_s3_settings():
     aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
     s3_settings = {
         "bucket_name": bucket_name,
-        "s3_region": s3_region,
+        "S3_REGION": s3_region,
         "AWS_ACCESS_KEY_ID": aws_key,
         "AWS_SECRET_ACCESS_KEY": aws_secret        
     }
