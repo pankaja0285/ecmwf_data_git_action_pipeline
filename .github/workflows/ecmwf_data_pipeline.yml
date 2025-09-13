@@ -4,10 +4,19 @@ name: ECMWF Data Pipeline to S3
 
 on:
   schedule:
+    # # Format of the cron time settings are as follows
+    # # * * * * * 
+    # # Minute (0 - 59) 
+    # # Hour (0 - 23)
+    # # Day of the month (1 - 31)
+    # # Month (1 - 12)
+    # # Day of the week (0 - 6, where 0 and 7 are Sunday)
     # # Runs at 00:05 UTC every day
-    # - cron: '5 0 * * *'
-    # Runs every hour at the 0th minute
-    - cron: '3 * * * *'
+    # # - cron: '5 0 * * *'
+    # # Runs every hour at the 0th minute
+    # - cron: '3 * * * *'
+    # Runs every 3 days - 72 hours
+    - cron '0 0 */3 * *'
   workflow_dispatch:
 
 jobs:
