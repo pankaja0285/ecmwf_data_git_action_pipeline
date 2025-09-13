@@ -70,8 +70,8 @@ Add the following secrets in your GitHub repository under `Settings > Secrets an
 
 ## File Locations
 - **ECMWF file download location:**
-  - Files are downloaded to a path constructed as `os.path.join(TEMP_DIR, grib_filename)`, where `TEMP_DIR` is set from the environment variable (default `/tmp`).
-- **`data_pipeline.py` location:**
+  - Files are downloaded to a path constructed as `os.path.join(f"{TEMP_DIR}{download_path}", grib_filename)`, where `TEMP_DIR` is set from the environment variable (default `/tmp`).
+- **`main_ecmwf_data_pipeline.py` location:**
   - Place at the root of your repository for direct access by the workflow.
 
 ## Notes
