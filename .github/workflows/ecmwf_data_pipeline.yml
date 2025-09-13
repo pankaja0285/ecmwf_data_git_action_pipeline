@@ -16,7 +16,7 @@ on:
     # # Runs every hour at the 0th minute
     # - cron: '3 * * * *'
     # Runs every 3 days - 72 hours
-    - cron '0 0 */3 * *'
+    - cron: '0 0 */3 * *'
   workflow_dispatch:
 
 jobs:
