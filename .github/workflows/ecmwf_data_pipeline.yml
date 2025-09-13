@@ -52,6 +52,7 @@ jobs:
         S3_REGION: ${{ secrets.S3_REGION }}
         TEMP_DIR: '/tmp'  # Explicitly setting TEMP_DIR
       # run: python main_ecmwf_data_pipeline.py
+      # Instead use the shell script below, so we can pass params -->
       run: |
           chmod +x ./ecmwf_data_refresh_on_s3.sh
           ./ecmwf_data_refresh_on_s3.sh

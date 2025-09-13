@@ -4,7 +4,7 @@ This repository automates the process of downloading ECMWF data at regular inter
 
 ## Overview
 This pipeline consists of three main components:
-1. **Python Script (`data_pipeline.py`)**
+1. **Python Script (`main_ecmwf_data_pipeline.py`)**
    - Handles downloading ECMWF data, converting GRIB files to CSV, and uploading to S3.
    - Should be placed at the root of your repository.
    - Downloads data to the GitHub Actions runner's temporary directory (`RUNNER_TEMP` or `/tmp`).
@@ -17,8 +17,9 @@ This pipeline consists of three main components:
      - `xarray`
      - `pandas`
      - `boto3`
+     .... 
    - Use your own `requirements.txt` as needed.
-3. **GitHub Actions Workflow (`.github/workflows/ecmwf_pipeline.yml`)**
+3. **GitHub Actions Workflow (`.github/workflows/ecmwf_data_pipeline.yml`)**
    - Schedules and runs the pipeline automatically (default: daily at 00:05 UTC).
    - Can also be triggered manually from the GitHub Actions tab.
    - Installs system dependencies (`libeccodes-tools`, `libeccodes-dev`) and Python packages.
@@ -53,7 +54,11 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         TEMP_DIR: '/tmp'
-      run: python data_pipeline.py
+      # run: python main_ecmwf_data_pipeline.py
+      # Instead use the shell script below, so we can pass params -->
+      run: |
+        chmod +x ./ecmwf_data_refresh_on_s3.sh
+        ./ecmwf_data_refresh_on_s3.sh
 ```
 
 ## Secrets Setup
@@ -76,5 +81,3 @@ Add the following secrets in your GitHub repository under `Settings > Secrets an
 - The workflow can be scheduled or manually triggered for testing.
 
 ---
-
-*This README summarizes the setup and automation details for the ECMWF data pipeline as described in `ecmwf_data_pipeline_details.txt`.*
