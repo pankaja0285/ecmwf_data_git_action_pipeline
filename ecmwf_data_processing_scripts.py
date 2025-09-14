@@ -471,7 +471,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # save the combined csv-dataframe to a csv file
             step = f" save cmbcsvdate {cnt+1} "
             curr_cmb_hrs = "".join([str(t) for t in chunk])
-            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc.csv"            
+            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc_{cnt+1}.csv"            
             cmb_file = ""
             s3c = None
             s3s = {}

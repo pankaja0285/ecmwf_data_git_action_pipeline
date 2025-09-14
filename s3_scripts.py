@@ -185,35 +185,19 @@ def download_file(file_type:str="csv", download_path:str="",
     return dwl_f_status
 
 
-# def download_model(file_type:str="pkl", bucket:str="", key:str="", s3_client=None):
-#     # pickle_data = None
-#     pickle_obj = None
-#     dwl_f_status= False
+def load_csv_from_s3_to_dataframe(s3_file_key="", bucket="", s3_client=None):
+    try:
+        # get the s3 - stored csv file as an object 
+        s3_file = s3_client.get_object(Bucket=bucket, Key=s3_file_key)
 
-#     try:
-#         match file_type:
-#             case "pkl":
-#                 # response = s3_client.get_object(Bucket=bucket, Key=key)
-#                 # body_data = response["Body"].read()
-#                 # if body_data:
-#                 #     pickle_data = pickle.loads(body_data)
-#                 #     # save pickle file locally
-                
-#                 # create an in-memory binary stream to store the downloaded file
-#                 bytes_stream = BytesIO()
+        # load the object's body (CSV content), decoded as utf-8
+        csv_data = s3_file['Body'].read().decode('utf-8')
 
-#                 # download object from s3 to io-stream buffer
-#                 s3_client.download_fileobj(Bucket=bucket, Key=key, Fileobj=bytes_stream)
-
-#                 # seek to the beginning of the io-stream before loading with pickle
-#                 bytes_stream.seek(0)
-
-#                 # load pickled object from the io-stream
-#                 pickle_obj = pickle.load(bytes_stream)
-#                 dwl_f_status = True
-            
-#     except FileNotFoundError:
-#         print(f"Error: File '{key}' not found in bucket '{bucket}'. Download failed.")
-#     except Exception as e:
-#         print(f"Error downloading {file_type} file: {e}")
-#     return dwl_f_status, pickle_obj
+        # load to a pandas dataframe, the io.StringIO contents of csv_data file-like object 
+        # and read into pandas DataFrame
+        df = pd.read_csv(StringIO(csv_data)) 
+    except s3_client.exceptions.NoSuchKey:
+        print(f"Error: The object '{s3_file_key}' was not found in bucket '{bucket}'.")
+    except Exception as e:
+        print(f"Error loading to dataframe from csv file on s3: {e}")
+    return df
