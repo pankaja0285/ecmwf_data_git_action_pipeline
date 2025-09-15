@@ -23,13 +23,27 @@ def get_s3_settings():
     aws_key = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
     s3_settings = {
-        "bucket_name": bucket_name,
+        "S3_BUCKET_NAME": bucket_name,
         "S3_REGION": s3_region,
         "AWS_ACCESS_KEY_ID": aws_key,
         "AWS_SECRET_ACCESS_KEY": aws_secret        
     }
         
     return s3_settings
+
+
+def get_s3_client():
+    s3_settings = get_s3_settings()
+    bucket = s3_settings['S3_BUCKET_NAME']
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=s3_settings['AWS_SECRET_ACCESS_KEY'],
+        region_name=s3_settings['S3_REGION']  # e.g., 'us-east-2'
+    )
+
+    return s3_client, bucket
+
 
 def connect_to_s3_resource(s3_settings=None):
     s3_settings = get_s3_settings()

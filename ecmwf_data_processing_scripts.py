@@ -313,16 +313,10 @@ def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=
 
             combined_list.append(combined_df_for_var)
 
-        # # concatenate all the variable-specific dataframes into a single final dataframe
-        # step = " concatcombined "
-        # final_df = pd.concat(combined_list, ignore_index=True)
-
-        step = " new way of concat "        
-        merged_df_loop = combined_list[0]
-        merge_on_cols = ['longitude', 'latitude']
-        for i in range(1, len(combined_list)):
-            merged_df_loop = pd.merge(merged_df_loop, combined_list[i], on=merge_on_cols, how='inner', suffixes=('', '_drop'))
-            merged_df_loop = merged_df_loop.drop([col for col in merged_df_loop.columns if '_drop' in col], axis=1)
+        # concatenate all the variable-specific dataframes into a single final dataframe
+        step = " concatcombined "
+        # print(f"len combined_list: {len(combined_list)}")
+        merged_df_loop = pd.concat(combined_list, ignore_index=True)
 
         # print(f"Total rows in merged csv: {merged_df_loop.shape[0]}")
         # print(f"merged_df_loop cols: {merged_df_loop.columns}")
