@@ -471,7 +471,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             s3s = {}
             match push_destination: 
                 case "local":
-                    # cmb_file = f"{prepped_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc.csv"
+                    # sample: cmb_file = f"{prepped_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc.csv"
                     cmb_file = f"{prepped_path}/{save_file}"
                     print(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
                     df_comb_csv.to_csv(cmb_file, index=False)
@@ -479,11 +479,10 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                     # save dataframe as a csv file on AWS s3
                     print(f"Saving data on s3 as file: {save_file}")
                     logging.info(f"Saving data on s3 as file: {save_file}")
-                    # get s3 connect details
-                    s3c, _, s3s = connect_to_s3_resource()
+                    # get s3 client details
+                    s3c, bucket_name = get_s3_client()
                     
                     key = f"{push_data_path}/{save_file}"
-                    bucket_name = s3s['bucket_name']
                     save_status = upload_dataframe_as_csv(df_comb_csv, 
                                                           bucket=bucket_name, 
                                                           key=key,
@@ -492,7 +491,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                         logging.info(f"✅Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} succeeded.")
                         uploaded_file_list.append(save_file)
                     else:
-                        logging.warn(f"❌Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} failed.")
+                        logging.warning(f"❌Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} failed.")
                 case _: # default
                     # save to local as default                    
                     cmb_file = f"{prepped_path}/{save_file}"
