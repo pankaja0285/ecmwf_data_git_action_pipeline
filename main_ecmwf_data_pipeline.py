@@ -35,7 +35,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     # clean data on s3 first
     if delete_s3_files:
         s3c, bucket_name = get_s3_client()
-        print(f"bucket_name: {bucket_name}")
+        # print(f"bucket_name: {bucket_name}")
         object_prefix = f"{push_data_path}/"
         flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
         logging.info(f"list of files in s3 with object_prefix - {object_prefix}: {flist}")
@@ -55,7 +55,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     
     # list the files after push to s3 as well for audit purposes
     s3c, bucket_name = get_s3_client()
-    print(f"bucket_name: {bucket_name}")
+    # print(f"bucket_name: {bucket_name}")
     object_prefix = f"{push_data_path}/"
     f_postlist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
     # user friendly format the list and show in the log
