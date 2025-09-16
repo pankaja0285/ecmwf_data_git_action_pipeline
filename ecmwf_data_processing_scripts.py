@@ -255,7 +255,7 @@ def load_grib2_to_csv(filter_levels=[], input_dir="", prepped_dir="",
 
 # *************  Scripts - Other processing related
 def assign_param_by_tag(row):    
-    param_value = "temperature_celcius" if row['param_tag']=="t2m_cel" else "surface_area" if row['param_tag']=="surface" else "precipitation"
+    param_value = "temperature_celcius" if row['param_tag']=="t2m_cel" else "surface_runoff" if row['param_tag']=="surface" else "precipitation"
     return param_value
 
 def format_date_final(row, date_format="%Y-%m-%d"):
