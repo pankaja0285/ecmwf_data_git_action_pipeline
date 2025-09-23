@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pandas as pd 
 import time
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from tqdm import tqdm
 from glob import glob
 
@@ -351,16 +351,29 @@ def get_forecast_hours_for_total_days(num_days=0, step_size=6, start=6):
     hours_array = list(range(start, (num_days * hours_per_day) + 1, step_size))
     return hours_array
 
+def get_formatted_utc_current_date(add_hours=6):
+    utc_to_bhutan_date = None
+    fmtd_utc_to_bhutan_date = None
+    current_utc_date_at_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # add 6 hours using timedelta
+    utc_to_bhutan_date = current_utc_date_at_midnight + timedelta(hours=add_hours)
+
+    # check by printing the resulting date and time
+    print(f"The current UTC date at 0 hours is: {current_utc_date_at_midnight}")
+    print(f"UTC to Bhutan current date by adding 6 hours to UTC date: {utc_to_bhutan_date}")
+    fmtd_utc_to_bhutan_date = utc_to_bhutan_date.strftime("%Y-%m-%d %H:%M:%S")
+    return utc_to_bhutan_date, fmtd_utc_to_bhutan_date
 
 def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix="",
                                     filter_levels=[], level=2,                                    
-                                    number_of_days=5, step_size=6,
+                                    number_of_days=5, step_size=6, UTC_add_hours=6,
                                     push_destination="", push_data_path="",
                                     yaml_file=""):
     step = ""
     dp_status = False
     bucket_name = ""
-
+    
     try:
         root_temp_dir = os.getenv('TEMP_DIR', '/tmp')
         os.makedirs(root_temp_dir, exist_ok=True, mode=0o777)
@@ -370,25 +383,11 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
 
         # param set up
         step = " initial param set up "
-        
-        # # Get today's date as a datetime.date object
-        # today_date_object = date.today()
-
-        # # Format today's date as a string in 'YYYY-MM-DD' format
-        # formatted_date_string = today_date_object.strftime('%Y-%m-%d')
-
-        # NOTE: Instead of using today's date (time and moment), let's account from one day prior...
-        use_date_object = date.today() - timedelta(days=1)
-
-        # Format today's date as a string in 'YYYY-MM-DD' format
-        formatted_date_string = use_date_object.strftime('%Y-%m-%d')
-
-        # Convert the formatted date string back to a datetime.date object
-        # Use datetime.strptime() to parse the string, then extract the date part
-        start_date = datetime.strptime(formatted_date_string, '%Y-%m-%d').date()
-        # print(f"start_date type: {type(start_date)}")
-        print(f"ECMWF Data Refresh -- Start date: {start_date}")
-        logging.info(f"ECMWF Data Refresh -- Start date: {start_date}")
+                
+        # 09/23/2025 - changed to 0th hour UTC current date + 6 hours to account for Bhutan
+        start_date, start_date_fmtd = get_formatted_utc_current_date(add_hours=UTC_add_hours)
+        print(f"ECMWF Data Refresh -- Start date: {start_date}, formatted Start date: {start_date_fmtd}")
+        logging.info(f"ECMWF Data Refresh -- Start date: {start_date}, formatted Start date: {start_date_fmtd}")
 
         step = " fhours "
         start_hour = step_size
@@ -404,12 +403,14 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         chunks = [step_hours[i:i + chunk_step_size] for i in range(0, len(step_hours), chunk_step_size)]
         step = " main processing loop(days) "
         uploaded_file_list = []
-
+        stream_to_use = "oper"
+        if UTC_add_hours == 6:
+            stream_to_use = "scda"
         for chunk in chunks:
             print(f"Processing chunk: {chunk}")
             logging.info(f"Processing chunk: {chunk}")
             # loop through for each day
-            step = f" download {cnt+1} "
+            step = f" download {cnt+1} - chunk {chunk} "
             logging.info(f"\nDownload process for Day {cnt+1}...")
             download_dir = f"{root_temp_dir}/{download_path}"
             os.makedirs(download_dir, exist_ok=True, mode=0o777)
@@ -417,14 +418,15 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 step_hour = chunk[i]
                 print(f"step_hour: {step_hour}")
                 # set target filename 
-                # NOTE: FYI, here we are closely mimicking to the server filename              
-                target_filename = f"{download_dir}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_oper_fc.grib2"
+                # NOTE: FYI, here we are closely mi_micking to the server filename              
+                target_filename = f"{download_dir}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_{stream_to_use}_fc.grib2"
                 if not os.path.exists(target_filename):
                     client.download(
-                        date=current_date.strftime("%Y%m%d"), # Specify the date
-                        time=0,  # Assuming you want the 00 UTC forecast for each day
+                        date=current_date, # UTC + 6 hours accounted for, so time arg befow can be excluded
+                        # time=6,
                         step=step_hour,
-                        stream="oper", # Example stream, adjust if needed, we are allowed 'oper' ONLY
+                        stream=stream_to_use, # stream=['oper','wave','enfo','waef','scda','scwv'] adjust if needed, 
+                        # but we are allowed to only finite attrs within a level
                         type="fc", # Forecast data
                         target=target_filename,
                     )
@@ -465,13 +467,13 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # save the combined csv-dataframe to a csv file
             step = f" save cmbcsvdate {cnt+1} "
             curr_cmb_hrs = "".join([str(t) for t in chunk])
-            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc_{cnt+1}.csv"            
+            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_{stream_to_use}_fc_{cnt+1}.csv"            
             cmb_file = ""
             s3c = None
             s3s = {}
             match push_destination: 
                 case "local":
-                    # sample: cmb_file = f"{prepped_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_oper_fc.csv"
+                    # sample: cmb_file = f"{prepped_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_scda_fc.csv"
                     cmb_file = f"{prepped_path}/{save_file}"
                     print(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
                     df_comb_csv.to_csv(cmb_file, index=False)

@@ -1,7 +1,6 @@
 import os
 import boto3
 import pickle
-import yaml
 import json
 import pandas as pd 
 import logging
@@ -45,23 +44,6 @@ def get_s3_client():
     return s3_client, bucket
 
 
-def connect_to_s3_resource(s3_settings=None):
-    s3_settings = get_s3_settings()
-    s3_client = boto3.client(
-        's3',
-        aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=s3_settings['AWS_SECRET_ACCESS_KEY'],
-        region_name=s3_settings['S3_REGION']  # e.g., 'us-east-2'
-    )
-    s3_resource = boto3.resource(
-        's3',
-        aws_access_key_id=s3_settings["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=s3_settings['AWS_SECRET_ACCESS_KEY'],
-        region_name=s3_settings['S3_REGION']  # e.g., 'us-east-2'
-    )
-    return s3_client, s3_resource, s3_settings
-
-
 def verify_object_exists(bucket: str=None, key: str=None, s3_client=None) -> bool:
     """Verify object exists and return True (calls head_object)."""
     verify_status = False
@@ -74,6 +56,7 @@ def verify_object_exists(bucket: str=None, key: str=None, s3_client=None) -> boo
         # 404 or AccessDenied will raise ClientError
         logging.error(f"head_object failed: {e}")
     return verify_status
+
 
 def list_bucket_objects(bucket:str="", s3_client=None, object_prefix="") -> list:
     lst_objects = []
@@ -94,6 +77,7 @@ def list_bucket_objects(bucket:str="", s3_client=None, object_prefix="") -> list
         logging.error(f"Error with exception: {ex}")
     
     return lst_objects
+
     
 def remove_files_on_s3(file_list=None, bucket:str="", s3_client=None):
     status = False
