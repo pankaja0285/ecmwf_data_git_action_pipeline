@@ -260,8 +260,9 @@ def assign_param_by_tag(row):
 
 def format_date_final(row, date_format="%Y-%m-%d"):
     # Parse the original string into a datetime object
-    # The format code "%Y%m%d" matches the input string "YYYYMMDD"
-    date_object = datetime.strptime(row['forecast_date'], "%Y%m%d")
+    # Sample: row{'forecast_date'} = '2025-09-23 06:00:00'
+    #         we want to return just the date part as '2025-09-23'
+    date_object = datetime.strptime(row['forecast_date'], '%Y-%m-%d %H:%M:%S')
 
     # Format the datetime object into the desired string format
     date_value = date_object.strftime(date_format)
@@ -332,8 +333,8 @@ def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=
         final_df.rename(columns={"time": "forecast_date", "t2m_cel": "temperature", "tp": "precipitation"}, inplace=True)
         # create param column
         final_df['param'] = final_df.apply(lambda r: assign_param_by_tag(r), axis=1)
-        # # modify date column formatted as yyyy-mm-dd
-        # final_df['forecast_date'] = final_df.apply(lambda r: format_date_final(r), axis=1)
+        # modify date column formatted as yyyy-mm-dd
+        final_df['forecast_date'] = final_df.apply(lambda r: format_date_final(r), axis=1)
         
         # rearrange columns
         step = " combrearr "
@@ -412,7 +413,10 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # loop through for each day
             step = f" download {cnt+1} - chunk {chunk} "
             logging.info(f"\nDownload process for Day {cnt+1}...")
-            download_dir = f"{root_temp_dir}/{download_path}"
+            if push_destination == "local":
+                download_dir = download_path
+            else:
+                download_dir = f"{root_temp_dir}/{download_path}"
             os.makedirs(download_dir, exist_ok=True, mode=0o777)
             for i in range(len(chunk)):
                 step_hour = chunk[i]
@@ -438,7 +442,10 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # load
             step = f" loadgribtocsv cnt {cnt+1} "
             # print(f"filter_levels: {filter_levels}")
-            prepped_dir = f"{root_temp_dir}/{prepped_path}"
+            if push_destination == "local":
+                prepped_dir = prepped_path
+            else:
+                prepped_dir = f"{root_temp_dir}/{prepped_path}"
             os.makedirs(prepped_dir, exist_ok=True, mode=0o777)
             load_grib2_to_csv(filter_levels=filter_levels, input_dir=download_dir,
                               prepped_dir=prepped_dir, level=level, yaml_file=yaml_file)
@@ -473,8 +480,8 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             s3s = {}
             match push_destination: 
                 case "local":
-                    # sample: cmb_file = f"{prepped_path}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_scda_fc.csv"
-                    cmb_file = f"{prepped_path}/{save_file}"
+                    # sample: cmb_file = f"{prepped_dir}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_scda_fc.csv"
+                    cmb_file = f"{prepped_dir}/{save_file}"
                     print(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
                     df_comb_csv.to_csv(cmb_file, index=False)
                 case "s3":

@@ -7,5 +7,5 @@ pip install -r requirements.txt
 python main_ecmwf_data_pipeline.py --download_path="download" --prepped_path="prepped" \
 --prepped_suffix="temp" \
 --filter_levels="surface, heightAboveGround" --number_of_days='4' --step_counter=6 \
---push_destination="s3" --push_data_path="ecmwfdata" --delete_s3_files_flag="Y"
+--UTC_add_hours='6' --push_destination="s3" --push_data_path="ecmwfdata" --delete_s3_files_flag="Y"
 
