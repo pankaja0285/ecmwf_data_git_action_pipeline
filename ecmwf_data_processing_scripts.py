@@ -352,23 +352,26 @@ def get_forecast_hours_for_total_days(num_days=0, step_size=6, start=6):
     hours_array = list(range(start, (num_days * hours_per_day) + 1, step_size))
     return hours_array
 
-def get_formatted_utc_current_date(add_hours=6):
-    utc_to_bhutan_date = None
-    fmtd_utc_to_bhutan_date = None
-    current_utc_date_at_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+def get_formatted_utc_current_date():
+    utc_1dayprior_date = None
+    fmtd_utc_1dayprior_date = None
+    # get the current date in UTC
+    today_utc = datetime.now(timezone.utc).date()
 
-    # add 6 hours using timedelta
-    utc_to_bhutan_date = (current_utc_date_at_midnight - timedelta(days=1)) + timedelta(hours=add_hours)
+    # combine the date with a time of 00:00:00 and the UTC timezone
+    current_utc_date_at_midnight = datetime.combine(today_utc, datetime.min.time(), tzinfo=timezone.utc)
+    # we are keeping in UTC, so we don't alter the source data integrity 
+    utc_1dayprior_date = (current_utc_date_at_midnight - timedelta(days=1)) 
 
     # check by printing the resulting date and time
     print(f"The current UTC date at 0 hours is: {current_utc_date_at_midnight}")
-    print(f"UTC to Bhutan current date by adding 6 hours to UTC date: {utc_to_bhutan_date}")
-    fmtd_utc_to_bhutan_date = utc_to_bhutan_date.strftime("%Y-%m-%d %H:%M:%S")
-    return utc_to_bhutan_date, fmtd_utc_to_bhutan_date
+    print(f"UTC date 1day prior so we cover Bhutan TZ: {utc_1dayprior_date}")
+    fmtd_utc_1dayprior_date = utc_1dayprior_date.strftime("%Y-%m-%d %H:%M:%S")
+    return utc_1dayprior_date, fmtd_utc_1dayprior_date
 
 def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix="",
                                     filter_levels=[], level=2,                                    
-                                    number_of_days=5, step_size=6, UTC_add_hours=6,
+                                    number_of_days=5, step_size=6, 
                                     push_destination="", push_data_path="",
                                     yaml_file=""):
     step = ""
@@ -386,7 +389,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         step = " initial param set up "
                 
         # 09/23/2025 - changed to 0th hour UTC current date + 6 hours to account for Bhutan
-        start_date, start_date_fmtd = get_formatted_utc_current_date(add_hours=UTC_add_hours)
+        start_date, start_date_fmtd = get_formatted_utc_current_date()
         print(f"ECMWF Data Refresh -- Start date: {start_date}, formatted Start date: {start_date_fmtd}")
         logging.info(f"ECMWF Data Refresh -- Start date: {start_date}, formatted Start date: {start_date_fmtd}")
 
@@ -422,12 +425,12 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                 step_hour = chunk[i]
                 print(f"step_hour: {step_hour}")
                 # set target filename 
-                # NOTE: FYI, here we are closely mi_micking to the server filename              
+                # NOTE: FYI, here we are closely mimicking to the server filename              
                 target_filename = f"{download_dir}/ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{step_hour}h_{stream_to_use}_fc.grib2"
                 if not os.path.exists(target_filename):
                     client.download(
-                        date=current_date, # UTC + 6 hours accounted for, so time arg befow can be excluded
-                        # time=6,
+                        date=current_date, # UTC starting at 00 hours, so time arg befow can be excluded
+                        # time=0,
                         step=step_hour,
                         stream=stream_to_use, # stream=['oper','wave','enfo','waef','scda','scwv'] adjust if needed, 
                         # but we are allowed to only finite attrs within a level

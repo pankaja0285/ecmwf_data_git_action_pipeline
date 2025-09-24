@@ -14,7 +14,7 @@ from s3_scripts import *
 
 def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix="",
                             filter_levels=[], level=2,
-                            number_of_days=0, step_counter=6, UTC_add_hours=6,
+                            number_of_days=0, step_counter=6,
                             push_destination="", push_data_path="",
                             yaml_file="", 
                             delete_s3_files=False
@@ -51,8 +51,7 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     overall_status = download_and_process_ecmwf_data(download_path=download_path, prepped_path=prepped_path,
                                                      prepped_suffix=prepped_suffix,
                                                      filter_levels=filter_levels, level=level,
-                                                     number_of_days=number_of_days, step_size=step_counter,
-                                                     UTC_add_hours=UTC_add_hours,
+                                                     number_of_days=number_of_days, step_size=step_counter,                                                     
                                                      push_destination=push_destination, 
                                                      push_data_path=push_data_path,
                                                      yaml_file=yaml_file
@@ -107,14 +106,12 @@ if __name__ == "__main__":
                         help='total number of days to get the ECMWF data for')  
     parser.add_argument('--step_counter', type=str, default='6',
                         help='step size')
-    parser.add_argument('--UTC_add_hours', type=str, default='6',
-                        help='hours to add to the UTC start date, here in case of Bhutan we are adding 6 hours, even though initial data downloaded is overall')
+    
     parser.add_argument('--push_destination', type=str, default='local',
                         help='push destination where the final prepped ECMWF data csv file will be stored')
     parser.add_argument('--push_data_path', type=str, default='ecmwfdata',
                         help='push destination data path prefix where the final prepped ECMWF data csv file will be stored')
-    # parser.add_argument('--env', type=str, default='env',
-    #                     help='get push destination "s3" auth details from env')
+    
     parser.add_argument('--yaml_file', type=str, default='gribcfg.yaml',
                         help='settings required for download')
     parser.add_argument('--delete_s3_files_flag', type=str, default='Y',
@@ -131,8 +128,7 @@ if __name__ == "__main__":
     level = 2
     number_of_days = 5
     step_counter = 6
-    UTC_add_hours = 6
-
+    
     # push destination related
     push_destination = ""
     push_data_path = ""
@@ -157,10 +153,7 @@ if __name__ == "__main__":
     if parse_args.step_counter is not None:
         step_counter_s = parse_args.step_counter
         step_counter = int(step_counter_s)
-    if parse_args.UTC_add_hours is not None:
-        UTC_add_hours_s = parse_args.UTC_add_hours
-        UTC_add_hours = int(UTC_add_hours_s)
-
+    
     # push destination related
     if parse_args.push_destination is not None:
         push_destination = parse_args.push_destination
@@ -181,7 +174,6 @@ if __name__ == "__main__":
     main_process_ecmwf_data(download_path=download_path, prepped_path=prepped_path, 
                             prepped_suffix=prepped_suffix, filter_levels=filter_levels, level=level,
                             number_of_days=number_of_days, step_counter=step_counter,
-                            UTC_add_hours=UTC_add_hours,
                             push_destination=push_destination, push_data_path=push_data_path,
                             yaml_file=yaml_file, 
                             delete_s3_files=delete_s3_files
