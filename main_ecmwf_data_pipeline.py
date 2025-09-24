@@ -35,7 +35,6 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     # clean data on s3 first
     if delete_s3_files:
         s3c, bucket_name = get_s3_client()
-        # print(f"bucket_name: {bucket_name}")
         object_prefix = f"{push_data_path}/"
         flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
         logging.info(f"list of files in s3 with object_prefix - {object_prefix}: {flist}")
@@ -107,9 +106,9 @@ if __name__ == "__main__":
     parser.add_argument('--step_counter', type=str, default='6',
                         help='step size')
     
-    parser.add_argument('--push_destination', type=str, default='local',
+    parser.add_argument('--push_destination', type=str, default='',
                         help='push destination where the final prepped ECMWF data csv file will be stored')
-    parser.add_argument('--push_data_path', type=str, default='ecmwfdata',
+    parser.add_argument('--push_data_path', type=str, default='',
                         help='push destination data path prefix where the final prepped ECMWF data csv file will be stored')
     
     parser.add_argument('--yaml_file', type=str, default='gribcfg.yaml',
@@ -118,7 +117,7 @@ if __name__ == "__main__":
                         help='flag to indicate to delete all files on S3')
     
     parse_args = parser.parse_args()
-    print(f'\nRun args for downloading ECMWF data and processing to convert to .csv --> {parse_args}')
+    logging.info(f'\nRun args for downloading ECMWF data and processing to convert to .csv --> {parse_args}')
 
     download_path = ""
     prepped_path = ""

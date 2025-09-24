@@ -269,7 +269,7 @@ def format_date_final(row, date_format="%Y-%m-%d"):
 
     return date_value
 
-def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=[]):
+def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=[], stream_to_use=""):
     combined_1day_df = None
      
     step = ""
@@ -333,8 +333,11 @@ def combine_csvs_for_one_day(prepped_path="", prepped_suffix="temp", hour_array=
         final_df.rename(columns={"time": "forecast_date", "t2m_cel": "temperature", "tp": "precipitation"}, inplace=True)
         # create param column
         final_df['param'] = final_df.apply(lambda r: assign_param_by_tag(r), axis=1)
-        # modify date column formatted as yyyy-mm-dd
-        final_df['forecast_date'] = final_df.apply(lambda r: format_date_final(r), axis=1)
+        if stream_to_use == "oper":
+            print("No need to format date, as it is already a short date")
+        else:
+            # modify date column formatted as yyyy-mm-dd
+            final_df['forecast_date'] = final_df.apply(lambda r: format_date_final(r), axis=1)
         
         # rearrange columns
         step = " combrearr "
@@ -358,8 +361,8 @@ def get_formatted_utc_current_date():
     # get the current date in UTC
     today_utc = datetime.now(timezone.utc).date()
 
-    # combine the date with a time of 00:00:00 and the UTC timezone
-    current_utc_date_at_midnight = datetime.combine(today_utc, datetime.min.time(), tzinfo=timezone.utc)
+    # get the current UTC date and time, setting the time to 00:00:00
+    current_utc_date_at_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     # we are keeping in UTC, so we don't alter the source data integrity 
     utc_1dayprior_date = (current_utc_date_at_midnight - timedelta(days=1)) 
 
@@ -453,7 +456,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             
             # combine period csv s for one day to one common csv
             step = f" cmbcsv cnt {cnt+1} "
-            df_comb_csv = combine_csvs_for_one_day(prepped_path=prepped_dir, hour_array=chunk)
+            df_comb_csv = combine_csvs_for_one_day(prepped_path=prepped_dir, hour_array=chunk, stream_to_use=stream_to_use)
             print(df_comb_csv.head(2))
 
             # delete the grib2 and grib2.idx files
@@ -500,15 +503,10 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
                                                           s3_client=s3c)
                     if save_status:
                         logging.info(f"✅Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} succeeded.")
-                        uploaded_file_list.append(save_file)
+                        uploaded_file_list.append(key)
                     else:
                         logging.warning(f"❌Push to s3 - the completely processed/prepped grib2-csv file{save_file} for day {cnt+1} failed.")
-                case _: # default
-                    # save to local as default                    
-                    cmb_file = f"{prepped_path}/{save_file}"
-                    df_comb_csv.to_csv(cmb_file, index=False)
-                    logging.info(f"✅Saved for day {cnt+1}, the completely processed/prepped grib2-csv file as: {cmb_file}\n")
-            
+                            
             # status
             dp_status = True
 
@@ -516,9 +514,14 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             step = " next in while loop "            
             cnt += 1
         
+        s3_list = []
         if push_destination == "s3":
-            # print(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
-            logging.info(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
+            logging.info(f"\nSaved csv file list s3 from gitaction code: {','.join(uploaded_file_list)}")
+            s3c, bucket_name = get_s3_client()
+            object_prefix = f"{push_data_path}/"
+            s3_list = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
+            logging.info(f"\nSaved csv file list from s3 objects: {','.join(s3_list)}")
+            s3c.close()
     except Exception as ex:
         logging.error(f"Error with exception: {ex} at step: {step}")
     return dp_status
