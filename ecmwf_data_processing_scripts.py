@@ -405,8 +405,8 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         step = " main processing loop(days) "
         uploaded_file_list = []
         stream_to_use = "oper"
-        if UTC_add_hours == 6:
-            stream_to_use = "scda"
+        # if UTC_add_hours == 6:
+        #     stream_to_use = "scda"
         for chunk in chunks:
             print(f"Processing chunk: {chunk}")
             logging.info(f"Processing chunk: {chunk}")
