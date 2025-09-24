@@ -28,8 +28,8 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     # *********************************************** 
     
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
-    print(f"ECMNWF Data download and processing started at: {fmt_date}")
-    logging.info(f"ECMNWF Data download and processing started at: {fmt_date}")
+    print(f"ECMWF Data download and processing started at: {fmt_date}")
+    logging.info(f"ECMWF Data download and processing started at: {fmt_date}")
     start_t = time.time()
 
     # clean data on s3 first
@@ -39,8 +39,12 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
         object_prefix = f"{push_data_path}/"
         flist = list_bucket_objects(bucket=bucket_name, s3_client=s3c, object_prefix=object_prefix)
         logging.info(f"list of files in s3 with object_prefix - {object_prefix}: {flist}")
+        # check if file count is > 0, delete else proceed to refresh data
         if len(flist) > 0:
             del_status = remove_files_on_s3(file_list=flist, bucket=bucket_name, s3_client=s3c)
+            print(f"ECMWF data files deleted on S3, to prep for data refresh.")
+        else:
+            print(f"No ECMWF data files found on S3, no action taken before data refresh.")
         s3c.close()
         
     # download and process
@@ -72,8 +76,8 @@ def main_process_ecmwf_data(download_path="", prepped_path="", prepped_suffix=""
     end_t = time.time()
     fmt_date = datetime.now().strftime("%Y-%m-%d %H:%M")
     
-    print(f"ECMNWF Data download and processing completed at: {fmt_date}")
-    logging.info(f"ECMNWF Data download and processing completed at: {fmt_date}")
+    print(f"ECMWF Data download and processing completed at: {fmt_date}")
+    logging.info(f"ECMWF Data download and processing completed at: {fmt_date}")
 
     time_diff = round(end_t - start_t)
     msg = ""

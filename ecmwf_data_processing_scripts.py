@@ -358,7 +358,7 @@ def get_formatted_utc_current_date(add_hours=6):
     current_utc_date_at_midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
     # add 6 hours using timedelta
-    utc_to_bhutan_date = current_utc_date_at_midnight + timedelta(hours=add_hours)
+    utc_to_bhutan_date = (current_utc_date_at_midnight - timedelta(days=1)) + timedelta(hours=add_hours)
 
     # check by printing the resulting date and time
     print(f"The current UTC date at 0 hours is: {current_utc_date_at_midnight}")
@@ -405,8 +405,8 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
         step = " main processing loop(days) "
         uploaded_file_list = []
         stream_to_use = "oper"
-        # if UTC_add_hours == 6:
-        #     stream_to_use = "scda"
+        if UTC_add_hours == 6:
+            stream_to_use = "scda"
         for chunk in chunks:
             print(f"Processing chunk: {chunk}")
             logging.info(f"Processing chunk: {chunk}")
@@ -474,7 +474,8 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             # save the combined csv-dataframe to a csv file
             step = f" save cmbcsvdate {cnt+1} "
             curr_cmb_hrs = "".join([str(t) for t in chunk])
-            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_{stream_to_use}_fc_{cnt+1}.csv"            
+            save_file =f"ecmwf_data_{start_date.strftime('%Y%m%d')}000000_{curr_cmb_hrs}h_{stream_to_use}_fc_{cnt+1}.csv"     
+            print(f"Save file name for day {cnt+1}: {save_file}")       
             cmb_file = ""
             s3c = None
             s3s = {}
@@ -515,7 +516,7 @@ def download_and_process_ecmwf_data(download_path="", prepped_path="", prepped_s
             cnt += 1
         
         if push_destination == "s3":
-            print(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
+            # print(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
             logging.info(f"\nSaved csv file on s3 are: {','.join(uploaded_file_list)}")
     except Exception as ex:
         logging.error(f"Error with exception: {ex} at step: {step}")
